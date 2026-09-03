@@ -1,9 +1,0 @@
-{
-  "name": "kore-jwt-service",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "jsonwebtoken": "^9.0.2"
-  }
-}
