@@ -1,34 +1,29 @@
+require("dotenv").config();
+
+const express = require("express");
 const jwt = require("jsonwebtoken");
+const cors = require("cors");
 
-module.exports = async function handler(req, res) {
-  // CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+const app = express();
 
-  // Handle browser preflight
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
 
-  // Only POST is allowed
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed",
-    });
-  }
+app.use(
+  cors({
+    origin: "*",
+    methods: ["POST", "OPTIONS"],
+  }),
+);
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.post("/jwt", (req, res) => {
   try {
-    const {
-      identity,
-      isAnonymous,
-    } = req.body || {};
+    const { identity, isAnonymous } = req.body;
 
-    console.log(
-      "JWT REQUEST:",
-      new Date().toISOString()
-    );
-
+    console.log("JWT REQUEST:", new Date().toISOString());
     console.log("Identity:", identity);
 
     if (!identity) {
@@ -37,14 +32,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const CLIENT_ID = process.env.CLIENT_ID;
-    const CLIENT_SECRET = process.env.CLIENT_SECRET;
-
     if (!CLIENT_ID || !CLIENT_SECRET) {
-      console.error(
-        "CLIENT_ID or CLIENT_SECRET is missing"
-      );
-
       return res.status(500).json({
         error: "JWT service is not configured",
       });
@@ -59,24 +47,23 @@ module.exports = async function handler(req, res) {
         isAnonymous === "true",
     };
 
-    const token = jwt.sign(
-      payload,
-      CLIENT_SECRET,
-      {
-        algorithm: "HS256",
-        expiresIn: "1d",
-      }
-    );
-
-    return res.status(200).json({
-      jwt: token,
+    const token = jwt.sign(payload, CLIENT_SECRET, {
+      algorithm: "HS256",
+      expiresIn: "1d",
     });
 
-  } catch (error) {
-    console.error("JWT generation failed:", error);
+    res.json({ jwt: token });
+  } catch (err) {
+    console.error("JWT error:", err);
 
-    return res.status(500).json({
+    res.status(500).json({
       error: "JWT generation failed",
     });
   }
-};
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`JWT backend running on port ${PORT}`);
+});
