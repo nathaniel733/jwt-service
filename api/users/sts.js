@@ -39,8 +39,8 @@ export default function handler(req, res) {
       });
     }
 
-    const clientId = process.env.CLIENT_ID;
-    const clientSecret = process.env.CLIENT_SECRET;
+    const clientId = "cs-8382e2d8-23af-560c-b576-08cc20c52cb8";
+    const clientSecret = "LonqHE7zddsy01RkrCN0+o+bNqVQ51Vh2FdcJrRrlQU=";
 
     if (!clientId || !clientSecret) {
       console.error("CLIENT_ID or CLIENT_SECRET is missing.");
