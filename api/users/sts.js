@@ -15,24 +15,12 @@ function parseBody(req) {
 }
 
 export default function handler(req, res) {
-  // Allow the React site to call this endpoint.
-  // Update this to your deployed React URL for production.
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "http://localhost:5173"
-  );
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "POST, OPTIONS"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
-
-  // Handle CORS preflight request
+  // Handle preflight
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
@@ -47,10 +35,10 @@ export default function handler(req, res) {
   try {
     const body = parseBody(req);
 
-    const identity = body.identity;
-    const isAnonymous = body.isAnonymous ?? true;
-    const aud =
-      body.aud || "https://idproxy.kore.com/authorize";
+    console.log("JWT REFRESH:", new Date().toISOString());
+    console.log("Request body:", body);
+
+    const { identity, isAnonymous } = body;
 
     if (!identity) {
       return res.status(400).json({
@@ -58,50 +46,43 @@ export default function handler(req, res) {
       });
     }
 
-    // IMPORTANT:
-    // Vercel Node.js functions use process.env
-    const clientId = process.env.CLIENT_ID;
-    const clientSecret = process.env.CLIENT_SECRET;
+    // Vercel server-side environment variables
+    const CLIENT_ID = process.env.CLIENT_ID;
+    const CLIENT_SECRET = process.env.CLIENT_SECRET;
 
-    if (!clientId || !clientSecret) {
-      console.error(
-        "CLIENT_ID or CLIENT_SECRET is missing."
-      );
+    if (!CLIENT_ID || !CLIENT_SECRET) {
+      console.error("CLIENT_ID or CLIENT_SECRET is missing");
 
       return res.status(500).json({
         error: "JWT service is not configured"
       });
     }
 
-    // JWT NumericDate values must be in seconds
-    const now = Math.floor(Date.now() / 1000);
-
     const payload = {
-      iat: now,
-      exp: now + 24 * 60 * 60,
-      aud,
-      iss: clientId,
+      aud: "https://idproxy.kore.ai/authorize",
+      iss: CLIENT_ID,
       sub: identity,
-      isAnonymous: Boolean(isAnonymous)
+      isAnonymous:
+        isAnonymous === true ||
+        isAnonymous === "true"
     };
 
-    const token = jwt.sign(
-      payload,
-      clientSecret,
-      {
-        algorithm: "HS256"
-      }
-    );
+    const token = jwt.sign(payload, CLIENT_SECRET, {
+      algorithm: "HS256",
+      expiresIn: "1d"
+    });
+
+    console.log("JWT generated successfully");
 
     return res.status(200).json({
       jwt: token
     });
 
-  } catch (error) {
-    console.error("JWT generation failed:", error);
+  } catch (err) {
+    console.error("JWT error:", err);
 
     return res.status(500).json({
-      error: "Failed to generate JWT"
+      error: "JWT generation failed"
     });
   }
 }
