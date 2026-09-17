@@ -14,7 +14,7 @@ function parseBody(req) {
 export default function handler(req, res) {
   // Allow the React site to call this endpoint from another Vercel domain.
   // For production, replace "*" with your exact frontend origin if desired.
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
