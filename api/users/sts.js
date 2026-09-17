@@ -1,43 +1,34 @@
 const jwt = require("jsonwebtoken");
-const cors = require("cors");
-
-const corsMiddleware = cors({
-  origin: "*",
-  methods: ["POST", "OPTIONS"],
-});
-
-function runMiddleware(req, res, fn) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-
-      return resolve(result);
-    });
-  });
-}
 
 module.exports = async function handler(req, res) {
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Handle browser preflight
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  // Only POST is allowed
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed",
+    });
+  }
+
   try {
-    await runMiddleware(req, res, corsMiddleware);
-
-    if (req.method === "OPTIONS") {
-      return res.status(204).end();
-    }
-
-    if (req.method !== "POST") {
-      return res.status(405).json({
-        error: "Method not allowed",
-      });
-    }
-
     const {
       identity,
       isAnonymous,
     } = req.body || {};
 
-    console.log("JWT REFRESH:", new Date().toISOString());
+    console.log(
+      "JWT REQUEST:",
+      new Date().toISOString()
+    );
+
     console.log("Identity:", identity);
 
     if (!identity) {
@@ -81,8 +72,8 @@ module.exports = async function handler(req, res) {
       jwt: token,
     });
 
-  } catch (err) {
-    console.error("JWT error:", err);
+  } catch (error) {
+    console.error("JWT generation failed:", error);
 
     return res.status(500).json({
       error: "JWT generation failed",
